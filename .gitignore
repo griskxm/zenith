@@ -1,0 +1,23 @@
+# CLion/JetBrains
+.idea/
+
+# CMake build directories
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# Generic build artifacts
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.dylib
+*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
