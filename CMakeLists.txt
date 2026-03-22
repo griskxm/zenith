@@ -4,4 +4,5 @@ project(zenith)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(zenith main.cpp
-        task.hpp)
+        task.hpp
+        executor.hpp)

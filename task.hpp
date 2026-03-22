@@ -5,6 +5,8 @@
 #ifndef ZENITH_TASK_HPP
 #define ZENITH_TASK_HPP
 
+#include "executor.hpp"
+
 #include <coroutine>
 #include <exception>
 #include <utility>
@@ -76,7 +78,17 @@ namespace zenith {
                 return Task{HandleType::from_promise(*this)};
             }
 
-            std::suspend_always initial_suspend()noexcept {return{};}
+            auto initial_suspend()noexcept {
+                struct InitialAwaiter {
+                    bool await_ready()const noexcept {return false;}
+                    void await_suspend(std::coroutine_handle<> h)noexcept {
+                        // 将自己注册到调度器中
+                        Executor::get_instance().publish(h);
+                    }
+                    void await_resume()noexcept {}
+                };
+                return InitialAwaiter{};
+            }
 
             //-------Custom FinalAwaiter is used to automatically jump back to the caller when the coroutine ends
             struct FinalAwaiter {
