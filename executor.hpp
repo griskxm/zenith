@@ -6,8 +6,8 @@
 #define ZENITH_EXECUTOR_HPP
 #include <coroutine>
 #include <queue>
-#include <vector>
-
+#include <chrono>
+#include <map>
 
 namespace zenith{
     /**
@@ -16,6 +16,7 @@ namespace zenith{
      */
     class Executor {
     public:
+        using Clock=std::chrono::steady_clock;
         //------调度器是单例或者全局唯一，禁止拷贝
         Executor()=default;
         Executor(const Executor&)=delete;
@@ -27,23 +28,45 @@ namespace zenith{
          */
         void publish(std::coroutine_handle<> handle) {
             if (handle) {
-                ready_queue.push(handle);
+                ready_queue_.push(handle);
             }
+        }
+
+        //新增推入延时任务
+        void delay_publish(std::coroutine_handle<> handle,Clock::duration delay) {
+            auto wake_time{Clock::now() + delay};
+            timer_map_.emplace(wake_time,handle);
         }
 
         /**
          * @brief 事件循环： 持续运行知道队列没有任务
          */
         void run() {
-            while (!ready_queue.empty()) {
-                std::coroutine_handle<> handle{ready_queue.front()};
-                ready_queue.pop();
-                if (!handle.done()) {
-                    handle.resume();
+            while (!ready_queue_.empty() || !timer_map_.empty()) {
+                auto now{Clock::now()};
+                auto it{timer_map_.begin()};
+                while (it != timer_map_.end() && it->first <= now) {
+                    ready_queue_.push(it->second);
+                    it =timer_map_.erase(it);
                 }
-                //注意：如果协程在执行过程中 co_await 了别的任务
-                //那些任务会被挂起，知道满足条件再次通过publish 回到队列
+                if (!ready_queue_.empty()) {
+                    auto handle{ready_queue_.front()};
+                    ready_queue_.pop();
+                    if (!handle.done()) {handle.resume();}
+                }else {
+
+                }
             }
+
+            // while (!ready_queue_.empty()) {
+            //     std::coroutine_handle<> handle{ready_queue_.front()};
+            //     ready_queue_.pop();
+            //     if (!handle.done()) {
+            //         handle.resume();
+            //     }
+            //     //注意：如果协程在执行过程中 co_await 了别的任务
+            //     //那些任务会被挂起，知道满足条件再次通过publish 回到队列
+            // }
         }
 
         /**
@@ -54,7 +77,8 @@ namespace zenith{
             return instance;
         }
     private:
-        std::queue<std::coroutine_handle<>> ready_queue;
+        std::queue<std::coroutine_handle<>> ready_queue_;
+        std::multimap<Clock::time_point, std::coroutine_handle<>> timer_map_;
     };
 }
 #endif //ZENITH_EXECUTOR_HPP

@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(zenith main.cpp
         task.hpp
-        executor.hpp)
+        executor.hpp
+        timer.hpp)

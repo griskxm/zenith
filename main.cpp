@@ -1,22 +1,30 @@
-
 #include "task.hpp"
 #include "executor.hpp"
 #include <iostream>
-using namespace zenith;
+#include <chrono>
 
-Task<int> sub_task() {
-    std::cout << "sub_task()" << std::endl;
-    co_return 0;
+#include "timer.hpp"
+
+using namespace std::chrono_literals;
+
+zenith::Task<void> task_a() {
+    std::cout << "task_a() 开始准备睡眠 100ms" << std::endl;
+    co_await zenith::sleep(100ms);
+    std::cout << "task_a() 醒了" << std::endl;
+    co_return;
 }
-Task<void> main_task() {
-    std::cout << "main_task()" << std::endl;
-    int v=co_await sub_task();
-    std::cout << "main_task result" << std::endl;
+zenith::Task<void> task_b() {
+    std::cout << "task_b() 开始准备睡眠 100ms" << std::endl;
+    co_await zenith::sleep(50ms);
+    std::cout << "task_b() 醒了" << std::endl;
     co_return;
 }
 int main() {
-    auto t=main_task();
-    std::cout << "启动调度器" << std::endl;
-    Executor::get_instance().run();
+    auto t1 = task_a();
+    auto t2 = task_b();
+    std::cout << "启动调用器" << "\n";
+    t1.resume();
+    t2.resume();
+    zenith::Executor::get_instance().run();
     return 0;
 }
